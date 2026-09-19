@@ -21,10 +21,8 @@ def get_chroma_collection():
     import chromadb
     from chromadb.utils import embedding_functions
 
-    # Local embedding function using sentence-transformers (all-MiniLM-L6-v2)
-    embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="all-MiniLM-L6-v2"
-    )
+    # Local embedding function using all-MiniLM-L6-v2 (ONNX runtime via ChromaDB)
+    embedding_fn = embedding_functions.DefaultEmbeddingFunction()
 
     _client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
     _collection = _client.get_or_create_collection(

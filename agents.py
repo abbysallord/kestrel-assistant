@@ -14,7 +14,21 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY")
 
-llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0)
+llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0, max_tokens=500)
+
+def safe_llm_invoke(messages):
+    """Invokes the LLM with exponential backoff on HTTP 429 rate limit errors (Free Tier safety)."""
+    for attempt in range(5):
+        try:
+            return llm.invoke(messages)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "429" in err_str or "rate_limit" in err_str:
+                wait_sec = (2 ** attempt) + 1.5
+                time.sleep(wait_sec)
+            else:
+                raise e
+    return llm.invoke(messages)
 
 # Optional LangSmith tracing setup
 if os.getenv("LANGSMITH_API_KEY"):
@@ -70,7 +84,7 @@ def planner_node(state: AgentState) -> Dict[str, Any]:
     prompt = f"{context_str}Current User Question: {query}\n\nRespond with strict JSON."
     
     try:
-        resp = llm.invoke([
+        resp = safe_llm_invoke([
             ("system", PLANNER_PROMPT),
             ("user", prompt)
         ])
@@ -124,8 +138,8 @@ def retriever_node(state: AgentState) -> Dict[str, Any]:
     # Re-rank: prioritize highest similarity, and break ties using document recency (published date)
     all_chunks.sort(key=lambda x: (x["score"], x["published"]), reverse=True)
 
-    # Cap context at top 8 chunks to keep prompt clean
-    return {"retrieved_chunks": all_chunks[:8]}
+    # Cap context at top 4 chunks to keep token usage compact and within limits
+    return {"retrieved_chunks": all_chunks[:4]}
 
 
 # =============================================================
@@ -162,7 +176,7 @@ def _run_baseline_verifier(question: str, chunks: List[Dict[str, Any]]) -> Dict[
     user_msg = f"Question: {question}\n\nRetrieved Chunks:\n{context_str}\n\nEvaluate and return JSON."
     
     try:
-        resp = llm.invoke([
+        resp = safe_llm_invoke([
             ("system", VERIFIER_PROMPT),
             ("user", user_msg)
         ])
@@ -289,7 +303,7 @@ Available Evidence Chunks:
 
 Please generate the grounded response following all citation and conflict rules."""
 
-    resp = llm.invoke([
+    resp = safe_llm_invoke([
         ("system", SYNTHESIZER_PROMPT),
         ("user", user_msg)
     ])
