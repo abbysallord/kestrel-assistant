@@ -138,12 +138,12 @@ def retriever_node(state: AgentState) -> Dict[str, Any]:
     # Re-rank: prioritize highest similarity, and break ties using document recency (published date)
     all_chunks.sort(key=lambda x: (x["score"], x["published"]), reverse=True)
 
-    # Cap context at top 4 chunks to keep token usage compact and within limits
-    return {"retrieved_chunks": all_chunks[:4]}
+    # Cap context at top 6 chunks to ensure multi-hop evidence is preserved
+    return {"retrieved_chunks": all_chunks[:6]}
 
 
 # =============================================================
-# Agent 3: Critic & Claim Verifier (Dual Mode: Baseline vs JEV)
+# Agent 3: Critic & Verifier
 # =============================================================
 VERIFIER_PROMPT = """You are the Lead Fact-Checking Critic for Kestrel Labs.
 Evaluate whether the retrieved documentation chunks contain sufficient, trustworthy evidence to answer the user's question.
@@ -303,6 +303,14 @@ def synthesizer_node(state: AgentState) -> Dict[str, Any]:
     chunks = state.get("retrieved_chunks", [])
     verdict = state.get("verifier_verdict", "supported")
     explanation = state.get("verifier_explanation", "")
+    history = state.get("messages", [])
+
+    history_str = ""
+    if history:
+        recent = history[-3:]
+        history_str = "Recent Conversation History:\n" + "\n".join(
+            f"{m['role'].capitalize()}: {m['content']}" for m in recent
+        ) + "\n\n"
 
     context_blocks = []
     for c in chunks:
@@ -311,7 +319,7 @@ def synthesizer_node(state: AgentState) -> Dict[str, Any]:
         )
     context_str = "\n\n".join(context_blocks)
 
-    user_msg = f"""User Question: {resolved_query}
+    user_msg = f"""{history_str}User Question: {resolved_query}
 Verifier Verdict: {verdict}
 Verifier Note: {explanation}
 

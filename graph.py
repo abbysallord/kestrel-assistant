@@ -44,11 +44,11 @@ def ask_kestrel(
     if messages is None:
         messages = []
 
-    # Cache lookup for repeated standalone queries
+    # Cache lookup for repeated queries (exact match on query text and mode)
     clean_q = query.strip().lower()
     cache_key = f"{mode}::{clean_q}"
 
-    if not messages and cache_key in _QUERY_CACHE:
+    if cache_key in _QUERY_CACHE:
         cached_result = dict(_QUERY_CACHE[cache_key])
         cached_result["cached"] = True
         cached_result["latency_seconds"] = 0.001
@@ -74,8 +74,8 @@ def ask_kestrel(
     result["latency_seconds"] = elapsed
     result["cached"] = False
 
-    # Store in cache if successful standalone answer
-    if not messages and result.get("answer"):
+    # Store in cache if successful answer
+    if result.get("answer"):
         _QUERY_CACHE[cache_key] = dict(result)
 
     return result
