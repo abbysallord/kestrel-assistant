@@ -1,10 +1,12 @@
-# 🦅 Kestrel Labs Multi-Agent Research Assistant
+# Kestrel Labs Multi-Agent Research Assistant
 
 An intelligent, grounded multi-agent research assistant designed for Kestrel Labs' internal wiki and event-pipeline documentation. Built with **LangGraph**, **Groq (`qwen/qwen3.8-27b`)**, **local sentence-transformers (`all-MiniLM-L6-v2`)**, and **ChromaDB**.
 
+**Live Interactive Demo:** [https://kestrel-assistant-qe3zplvancrfomuwrfzrs3.streamlit.app/](https://kestrel-assistant-qe3zplvancrfomuwrfzrs3.streamlit.app/)
+
 ---
 
-## 🌟 Key Features
+## Key Features
 
 1. **4-Agent Collaborative Swarm:**
    - 🧭 **Planner Agent:** Coreference resolution for multi-turn chats & multi-hop query decomposition.
