@@ -193,10 +193,23 @@ def _run_baseline_verifier(question: str, chunks: List[Dict[str, Any]]) -> Dict[
     return {"verdict": verdict, "explanation": explanation}
 
 
-def _run_jev_verifier(question: str, chunks: List[Dict[str, Any]]) -> Dict[str, str]:
-    """Evaluates evidence using TypeSafe AI Jev System 1 (Sub-150ms calibrated decision)."""
-    import requests
+# Persistent session for keep-alive socket reuse (drops connection latency significantly)
+_JEV_SESSION = None
 
+def get_jev_session():
+    global _JEV_SESSION
+    if _JEV_SESSION is None:
+        import requests
+        _JEV_SESSION = requests.Session()
+        _JEV_SESSION.headers.update({
+            "Authorization": f"Bearer {TYPESAFE_API_KEY}",
+            "Content-Type": "application/json"
+        })
+    return _JEV_SESSION
+
+
+def _run_jev_verifier(question: str, chunks: List[Dict[str, Any]]) -> Dict[str, str]:
+    """Evaluates evidence using TypeSafe AI Jev System 1 (Calibrated Decision)."""
     if not TYPESAFE_API_KEY:
         # Graceful fallback to baseline if Jev key missing
         return _run_baseline_verifier(question, chunks)
@@ -204,42 +217,46 @@ def _run_jev_verifier(question: str, chunks: List[Dict[str, Any]]) -> Dict[str, 
     if not chunks:
         return {
             "verdict": "insufficient_evidence",
-            "explanation": "Zero chunks retrieved."
+            "explanation": "Zero chunks retrieved from the corpus."
         }
 
-    context_summary = " ".join([f"[{c['chunk_id']} {c['published']}] {c['text'][:150]}" for c in chunks[:4]])
+    context_summary = " ".join([f"[{c['chunk_id']} {c['published']}] {c['text'][:140]}" for c in chunks[:4]])
     state_str = f"Question: {question} | Evidence: {context_summary}"
 
+    session = get_jev_session()
     url = "https://api.typesafe.ai/v1/systemone"
-    headers = {
-        "Authorization": f"Bearer {TYPESAFE_API_KEY}",
-        "Content-Type": "application/json"
-    }
+
     payload = {
         "state": state_str,
         "model": "jev-latest",
         "questions": {
             "verdict": {
                 "type": "choice",
-                "options": ["supported", "partially_supported", "conflicting_evidence", "insufficient_evidence"],
-                "description": "Does the evidence support, partially support, contradict, or lack information to answer the question?"
+                "instructions": "Evaluate whether the retrieved evidence supports, partially supports, contradicts, or lacks information to answer the question.",
+                "criteria": {
+                    "supported": "The evidence directly answers and supports the question",
+                    "partially_supported": "The evidence partially answers the question but misses key details",
+                    "conflicting_evidence": "The evidence contains contradictory claims across versions or documents",
+                    "insufficient_evidence": "The evidence does not contain information to answer the question"
+                }
             },
             "grounding_confidence": {
                 "type": "noul",
-                "description": "Is the question directly answerable from this text without guessing?"
+                "instructions": "Is the question directly answerable from this text without guessing?"
             }
         }
     }
 
     try:
-        r = requests.post(url, headers=headers, json=payload, timeout=5)
+        r = session.post(url, json=payload, timeout=5)
         if r.status_code == 200:
             data = r.json()
-            verdict_choice = data["choices"]["verdict"]["choice"]
-            conf = data["nouls"]["grounding_confidence"]["value"]
+            answers = data.get("answers", {})
+            verdict_choice = answers["verdict"]["choice"]
+            conf = answers.get("grounding_confidence", {}).get("noul", 0.0)
             return {
                 "verdict": verdict_choice,
-                "explanation": f"Jev System 1 verified with calibrated grounding confidence: {conf:.2%}"
+                "explanation": f"Jev System 1 verified with calibrated grounding confidence: {conf:.1%}"
             }
     except Exception:
         pass

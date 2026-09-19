@@ -25,6 +25,13 @@ def build_research_graph():
 # Global compiled graph
 research_graph = build_research_graph()
 
+# Simple in-memory response cache for repeated queries
+_QUERY_CACHE: Dict[str, Dict[str, Any]] = {}
+
+def clear_query_cache():
+    """Clears the query response cache."""
+    _QUERY_CACHE.clear()
+
 def ask_kestrel(
     query: str,
     messages: List[Dict[str, str]] = None,
@@ -32,10 +39,20 @@ def ask_kestrel(
 ) -> Dict[str, Any]:
     """
     Main invocation entry point for the Multi-Agent Research Assistant.
-    Supports multi-turn messages and dual verification mode (baseline vs jev).
+    Supports multi-turn messages, caching, and dual verification mode (baseline vs jev).
     """
     if messages is None:
         messages = []
+
+    # Cache lookup for repeated standalone queries
+    clean_q = query.strip().lower()
+    cache_key = f"{mode}::{clean_q}"
+
+    if not messages and cache_key in _QUERY_CACHE:
+        cached_result = dict(_QUERY_CACHE[cache_key])
+        cached_result["cached"] = True
+        cached_result["latency_seconds"] = 0.001
+        return cached_result
 
     initial_state: AgentState = {
         "messages": messages,
@@ -55,6 +72,11 @@ def ask_kestrel(
     result = research_graph.invoke(initial_state)
     elapsed = round(time.perf_counter() - t0, 3)
     result["latency_seconds"] = elapsed
+    result["cached"] = False
+
+    # Store in cache if successful standalone answer
+    if not messages and result.get("answer"):
+        _QUERY_CACHE[cache_key] = dict(result)
 
     return result
 
