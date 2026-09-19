@@ -16,6 +16,8 @@ Per assignment requirements (Section 3.4 & 5), representative multi-agent runs h
 * **Unsupported Query Trace (Azure Kubernetes):** [View Public Trace](https://smith.langchain.com/public/c3a37dc5-40ec-4f18-baa9-90c02ba53ecc/r)
 * **Multi-Turn Follow-Up Trace (Warehouse Sync):** [View Public Trace](https://smith.langchain.com/public/1cf5ea2b-04d8-4d3f-af5c-ebcc927236d1/r)
 
+*(Evaluators can also view the full project dashboard at: `https://smith.langchain.com/o/Personal/projects/p/kestrel-research-assistant`)*
+
 ---
 
 ## Key Features
