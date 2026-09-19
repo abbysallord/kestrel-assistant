@@ -6,6 +6,18 @@ An intelligent, grounded multi-agent research assistant designed for Kestrel Lab
 
 ---
 
+## 🔍 Public LangSmith Traces (Reviewer Inspection)
+
+Per assignment requirements (Section 3.4 & 5), representative multi-agent runs have been traced and made publicly viewable with zero authentication required:
+
+* **Single-Hop Trace (Starter Beacon Limit):** [View Public Trace](https://smith.langchain.com/public/c332b1b4-11dd-477e-8398-204b3352c7ce/r)
+* **Multi-Hop Trace (Incident ➔ Fix ➔ Plan):** [View Public Trace](https://smith.langchain.com/public/626df471-3837-459b-890f-a3acdcf04add/r)
+* **Conflicting Evidence Trace (PagerDuty Support v3 vs v4.1):** [View Public Trace](https://smith.langchain.com/public/04cdc027-35fb-477f-8b19-88e18965ca22/r)
+* **Unsupported Query Trace (Azure Kubernetes):** [View Public Trace](https://smith.langchain.com/public/c3a37dc5-40ec-4f18-baa9-90c02ba53ecc/r)
+* **Multi-Turn Follow-Up Trace (Warehouse Sync):** [View Public Trace](https://smith.langchain.com/public/1cf5ea2b-04d8-4d3f-af5c-ebcc927236d1/r)
+
+---
+
 ## Key Features
 
 1. **4-Agent Collaborative Swarm:**
